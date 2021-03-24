@@ -1,8 +1,11 @@
 package com.rab3tech.user.ui.controller;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpSession;
 
@@ -18,13 +21,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.rab3tech.customer.service.LoginService;
+import com.rab3tech.customer.service.impl.SecurityQuestionService;
+import com.rab3tech.vo.CustomerSecurityQueAnsVO;
 import com.rab3tech.vo.LoginVO;
+import com.rab3tech.vo.SecurityQuestionsVO;
 
 @Controller
 public class LoginController {
 	
 	@Autowired
 	private LoginService loginService;
+	
+	@Autowired
+	private SecurityQuestionService securityQuestionService;
 	
 	@GetMapping(value= {"/customer/login","/logout/success"})
 	public String showCustomerLogin(@RequestParam(value="error",required=false) boolean messsage,Model model) {
@@ -70,6 +79,19 @@ public class LoginController {
 						break;
 					case "CUSTOMER":
 						viewName ="customer/dashboard";
+						if(loginVO2.getLlt()==null) { //Means he logs in first time
+							viewName="customer/securityQuestion";
+							CustomerSecurityQueAnsVO customerSecurityQueAnsVO=new CustomerSecurityQueAnsVO();
+							List<SecurityQuestionsVO> questionsVOs=securityQuestionService.findAll();
+							Collections.shuffle(questionsVOs);
+							customerSecurityQueAnsVO.setQuestionsVOs(questionsVOs);
+							
+							List<SecurityQuestionsVO> questionsVOs1=questionsVOs.subList(0, questionsVOs.size()/2);
+							List<SecurityQuestionsVO> questionsVOs2=questionsVOs.subList(questionsVOs.size()/2,questionsVOs.size());
+							model.addAttribute("questionsVOs1", questionsVOs1);
+							model.addAttribute("questionsVOs2", questionsVOs2);
+							model.addAttribute("customerSecurityQueAnsVO", customerSecurityQueAnsVO);
+						}
 						break;
 					case "ADMIN":
 						viewName ="admin/dashboard";
@@ -81,11 +103,17 @@ public class LoginController {
 				}
 				return viewName;	//dashboard.html
 		}	
+		if("ROLE_ANONYMOUS".equalsIgnoreCase(nextPage)) {
+			LoginVO  loginVO2=new LoginVO();
+			loginVO2.setUsername("nagen@gmail.com");
+			loginVO2.setEmail("nagen@gmail.com");
+			session.setAttribute("userSessionVO", loginVO2);
+		}
 		return viewName;	//dashboard.html
 	}	
 	
 	
-	/*@PostMapping(value= {"/customer/login","/auth"})
+	@PostMapping(value= {"/customer/login","/auth"})
 	public String postLogin(@ModelAttribute LoginVO loginVO,HttpSession session,Model model) {
 			Optional<LoginVO> optional=loginService.authUser(loginVO);
 			if(optional.isPresent()) {
@@ -110,6 +138,6 @@ public class LoginController {
 				return "customer/login";	//login.html
 			}
 		
-	}	*/
+	}	
 
 }
